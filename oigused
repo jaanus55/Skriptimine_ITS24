@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Kontrollin, kas kasutaja sisestas täpselt 2 argumenti: faili tee ja soovitud õigused
+if [ "$#" -ne 2 ]; then
+
+    # Kui argumente pole õige arv, kuvan kasutusjuhendi
+    echo "Kasutamine: oigused FAIL OIGUSED"
+
+    # Toon kasutajale näite
+    echo "Näide: oigused /etc/passwd 644"
+
+    # Lõpetan skripti veakoodiga 1
+    exit 1
+
+# Lõpetan argumentide arvu kontrolli
+fi
+
+# Salvestan esimese argumendi ehk faili tee muutujasse fail
+fail="$1"
+
+# Salvestan teise argumendi ehk soovitud õigused muutujasse soovitud_oigused
+soovitud_oigused="$2"
+
+# Kontrollin, kas etteantud tee on üldse olemas
+if [ ! -e "$fail" ]; then
+
+    # Kui faili/teed ei ole olemas, annan sellest teada
+    echo "Hoiatus: $fail ei ole olemas!"
+
+    # Lõpetan skripti veakoodiga 1
+    exit 1
+
+# Lõpetan olemasolu kontrolli
+fi
+
+# Kontrollin, kas etteantud tee on tavaline fail
+if [ ! -f "$fail" ]; then
+
+    # Kui etteantud tee ei ole fail, annan sellest teada
+    echo "Hoiatus: $fail pole fail!"
+
+    # Lõpetan skripti veakoodiga 1
+    exit 1
+
+# Lõpetan faili tüübi kontrolli
+fi
+
+# Küsin faili tegelikud õigused numbrilisel kujul käsuga stat
+tegelikud_oigused=$(stat -c %a "$fail")
+
+# Kontrollin, kas tegelikud õigused vastavad soovitud õigustele
+if [ "$tegelikud_oigused" = "$soovitud_oigused" ]; then
+
+    # Kui õigused on õiged, kuvan positiivse teate
+    echo "Fail $fail on olemas ja õigustega korrektselt määratud"
+
+# Kui õigused ei vasta soovitud õigustele, läheb skript else ossa
+else
+
+    # Kui õigused on valed, kuvan hoiatuse tegelike ja soovitud õigustega
+    echo "Hoiatus: faili $fail õigused on $tegelikud_oigused, peaksid olema $soovitud_oigused!"
+
+# Lõpetan õiguste kontrolli
+fi
