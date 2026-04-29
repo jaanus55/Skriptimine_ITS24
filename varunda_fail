@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Funktsioon nimega varunda, mis võtab argumendina faili tee
+varunda() {
+
+    # Salvestan esimese argumendi muutujasse failitee
+    failitee="$1"
+
+    # Kontrollin, kas failitee on sisestatud
+    if [ -z "$failitee" ]; then
+        echo "Viga: faili tee puudub!"
+        echo "Kasutamine: varunda_fail /tee/failini.txt"
+        return 1
+    fi
+
+    # Kontrollin, kas etteantud tee on olemas
+    if [ ! -e "$failitee" ]; then
+        echo "Viga: faili $failitee ei ole olemas!"
+        return 1
+    fi
+
+    # Kontrollin, kas etteantud tee on tavaline fail
+    if [ ! -f "$failitee" ]; then
+        echo "Viga: $failitee pole fail!"
+        return 1
+    fi
+
+    # Võtan failitee põhjal ainult kausta tee
+    kataloog=$(dirname "$failitee")
+
+    # Võtan failitee põhjal ainult failinime
+    failinimi=$(basename "$failitee")
+
+    # Võtan failinime laiendi, näiteks txt
+    laiend="${failinimi##*.}"
+
+    # Võtan failinime ilma laiendita
+    nimi_ilma_laiendita="${failinimi%.*}"
+
+    # Loon kuupäeva ja kellaaja kujul 2024-04-08_10-25-30
+    aeg=$(date +"%Y-%m-%d_%H-%M-%S")
+
+    # Määran backup kausta asukohaks algse faili kausta sees oleva backup kausta
+    backup_kataloog="$kataloog/backup"
+
+    # Loon backup kausta, kui seda veel ei ole
+    mkdir -p "$backup_kataloog"
+
+    # Määran backup faili nimeks algne nimi + kuupäev + kellaaeg + laiend
+    backup_fail="$backup_kataloog/${nimi_ilma_laiendita}_${aeg}.${laiend}"
+
+    # Kopeerin algse faili backup faili
+    cp "$failitee" "$backup_fail"
+
+    # Kuvan kasutajale, kuhu backup salvestati
+    echo "Backup loodud: $backup_fail"
+}
+
+# Käivitan varunda funktsiooni skriptile antud esimese argumendiga
+varunda "$1"
