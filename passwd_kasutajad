@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Kuvan /etc/passwd failist ainult kasutajanimed.
+# /etc/passwd failis on iga rida kujul:
+# kasutajanimi:x:UID:GID:kirjeldus:kodukataloog:shell
+
+# cut käsuga võtan igalt realt ainult esimese välja.
+# -d ':' tähendab, et väljad on eraldatud kooloniga.
+# -f 1 tähendab, et kuvatakse ainult esimene väli ehk kasutajanimi.
+cut -d ':' -f 1 /etc/passwd
