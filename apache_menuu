@@ -1,0 +1,187 @@
+#!/bin/bash
+
+# Kontrollin, kas skript käivitati root/sudo õigustes
+if [ "$EUID" -ne 0 ]; then
+
+    # Kui skript ei tööta root õigustes, kuvan veateate
+    echo "Viga: palun käivita skript sudo õigustes!"
+
+    # Lõpetan skripti veakoodiga 1
+    exit 1
+
+# Lõpetan root õiguste kontrolli
+fi
+
+# Funktsioon, mis uuendab paketihalduri andmeid ja uuendab tarkvara
+uuenda_susteem() {
+
+    # Kuvan teate tegevuse alguse kohta
+    echo "Uuendan paketihalduri andmeid..."
+
+    # Uuendan paketinimekirja
+    apt update
+
+    # Kontrollin, kas apt update õnnestus
+    if [ "$?" -ne 0 ]; then
+        echo "Viga: paketihalduri andmete uuendamine ebaõnnestus!"
+        return 1
+    fi
+
+    # Kuvan teate tarkvara uuendamise kohta
+    echo "Uuendan tarkvara..."
+
+    # Uuendan tarkvara; -y vastab küsimustele automaatselt yes
+    apt upgrade -y
+
+    # Kontrollin, kas apt upgrade õnnestus
+    if [ "$?" -eq 0 ]; then
+        echo "Süsteemi uuendamine õnnestus."
+    else
+        echo "Viga: tarkvara uuendamine ebaõnnestus!"
+    fi
+}
+
+# Funktsioon, mis kontrollib ja paigaldab apache2
+paigalda_apache() {
+
+    # Kontrollin, kas apache2 pakett on juba paigaldatud
+    if dpkg -s apache2 &>/dev/null; then
+
+        # Kui apache2 on olemas, kuvan teate
+        echo "apache2 on juba paigaldatud."
+
+        # Proovin apache2 teenuse käivitada
+        systemctl start apache2
+
+        # Kontrollin, kas apache2 teenus töötab
+        if systemctl is-active --quiet apache2; then
+            echo "apache2 teenus on aktiivne ja töötab."
+        else
+            echo "Hoiatus: apache2 teenuse käivitamine ebaõnnestus!"
+        fi
+
+        # Lõpetan funktsiooni
+        return 0
+    fi
+
+    # Kuvan teate apache2 paigaldamise kohta
+    echo "Paigaldan apache2 tarkvara..."
+
+    # Paigaldan apache2 paketi; -y vastab automaatselt yes
+    apt install apache2 -y
+
+    # Kontrollin, kas paigaldamine õnnestus
+    if [ "$?" -ne 0 ]; then
+        echo "Viga: apache2 paigaldamine ebaõnnestus!"
+        return 1
+    fi
+
+    # Käivitan apache2 teenuse
+    systemctl start apache2
+
+    # Luban apache2 teenuse automaatse käivitumise süsteemi käivitamisel
+    systemctl enable apache2
+
+    # Kontrollin, kas apache2 teenus töötab
+    if systemctl is-active --quiet apache2; then
+        echo "apache2 paigaldati ja teenus käivitati edukalt."
+    else
+        echo "Hoiatus: apache2 paigaldati, aga teenus ei käivitunud!"
+    fi
+}
+
+# Funktsioon, mis eemaldab apache2
+eemalda_apache() {
+
+    # Kontrollin, kas apache2 pakett on üldse paigaldatud
+    if ! dpkg -s apache2 &>/dev/null; then
+
+        # Kui apache2 ei ole paigaldatud, kuvan teate
+        echo "apache2 ei ole paigaldatud, eemaldamist pole vaja."
+
+        # Lõpetan funktsiooni
+        return 0
+    fi
+
+    # Kuvan teate apache2 teenuse peatamise kohta
+    echo "Peatan apache2 teenuse..."
+
+    # Peatan apache2 teenuse; kui teenus ei tööta, ei katkesta see kogu skripti
+    systemctl stop apache2 2>/dev/null
+
+    # Lülitan apache2 automaatse käivitumise välja
+    systemctl disable apache2 2>/dev/null
+
+    # Kuvan teate apache2 eemaldamise kohta
+    echo "Eemaldan apache2 tarkvara ja seotud paketid..."
+
+    # Eemaldan apache2 koos seadistusfailidega; -y vastab automaatselt yes
+    apt purge apache2 apache2-* -y
+
+    # Eemaldan üleliigsed sõltuvuspaketid; -y vastab automaatselt yes
+    apt autoremove -y
+
+    # Kontrollin, kas apache2 on pärast eemaldamist veel alles
+    if dpkg -s apache2 &>/dev/null; then
+        echo "Viga: apache2 eemaldamine ebaõnnestus!"
+    else
+        echo "apache2 eemaldati edukalt."
+    fi
+}
+
+# Lõputu tsükkel, mis kuvab menüüd kuni kasutaja valib väljumise
+while true; do
+
+    # Kuvan menüü pealkirja
+    echo
+    echo "===== APACHE2 HALDUSMENÜÜ ====="
+
+    # Kuvan esimese valiku
+    echo "1) Uuenda paketihalduri andmeid ja tarkvara"
+
+    # Kuvan teise valiku
+    echo "2) Paigalda apache2 ja käivita teenus"
+
+    # Kuvan kolmanda valiku
+    echo "3) Eemalda apache2 ja seotud paketid"
+
+    # Kuvan neljanda valiku
+    echo "4) Välju"
+
+    # Küsin kasutajalt valiku
+    read -p "Tee valik [1-4]: " valik
+
+    # Kontrollin kasutaja valikut case-lausega
+    case "$valik" in
+
+        # Kui kasutaja valib 1, uuendan süsteemi
+        1)
+            uuenda_susteem
+            ;;
+
+        # Kui kasutaja valib 2, paigaldan apache2
+        2)
+            paigalda_apache
+            ;;
+
+        # Kui kasutaja valib 3, eemaldan apache2
+        3)
+            eemalda_apache
+            ;;
+
+        # Kui kasutaja valib 4, väljun skriptist
+        4)
+            echo "Väljun menüüst."
+            exit 0
+            ;;
+
+        # Kui kasutaja sisestab midagi muud, annan teada, et valik puudub
+        *)
+            echo "Viga: sellist valikut ei ole olemas!"
+            ;;
+
+    # Lõpetan case-lause
+    esac
+
+# Lõpetan while-tsükli
+done
